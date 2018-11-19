@@ -6,3 +6,8 @@
 4. Run `npm run test` to get the program running (modify the user and password if needed)
 5. Examine the typescript code under `server.ts`
 
+
+## Using the command with user input
+```
+npm run test -- [-u <User> |--user=<User>] 
+```

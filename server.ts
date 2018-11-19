@@ -1,7 +1,7 @@
 const pgPromise = require('pg-promise');
 const R         = require('ramda');
 const request   = require('request-promise');
-
+const argv = require('minimist')(process.argv.slice(2));
 // Limit the amount of debugging of SQL expressions
 const trimLogsSize : number = 200;
 
@@ -16,9 +16,10 @@ interface DBOptions
 
 // Actual database options
 const options : DBOptions = {
-  // user: ,
-  // password: ,
+  user: 'postgres',
+  password: 'mozcatel1993' ,
   host: 'localhost',
+  port: 5432,
   database: 'lovelystay_test',
 };
 
@@ -40,15 +41,19 @@ const pgpDefaultConfig = {
 };
 
 interface GithubUsers
-  { id : number
+  { 
+    id : number,
+    name : string,
+    company : string
   };
 
 const pgp = pgPromise(pgpDefaultConfig);
 const db = pgp(options);
+const user = argv['u'] || argv['user'];
 
-db.none('CREATE TABLE github_users (id BIGSERIAL, login TEXT, name TEXT, company TEXT)')
+db.none('CREATE TABLE IF NOT EXISTS github_users (id BIGSERIAL, login TEXT, name TEXT, company TEXT)')
 .then(() => request({
-  uri: 'https://api.github.com/users/gaearon',
+  uri: 'https://api.github.com/users/' + user,
   headers: {
         'User-Agent': 'Request-Promise'
     },

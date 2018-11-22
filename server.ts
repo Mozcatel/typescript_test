@@ -44,22 +44,38 @@ interface GithubUsers
   { 
     id : number,
     name : string,
-    company : string
+    company : string,
+    location : string,
   };
 
 const pgp = pgPromise(pgpDefaultConfig);
 const db = pgp(options);
 const user = argv['u'] || argv['user'];
 
-db.none('CREATE TABLE IF NOT EXISTS github_users (id BIGSERIAL, login TEXT, name TEXT, company TEXT)')
-.then(() => request({
-  uri: 'https://api.github.com/users/' + user,
-  headers: {
-        'User-Agent': 'Request-Promise'
-    },
-  json: true
-}))
-.then((data: GithubUsers) => db.one(
-  'INSERT INTO github_users (login) VALUES ($[login]) RETURNING id', data)
-).then(({id}) => console.log(id))
-.then(() => process.exit(0));
+if(!argv['listlocation']){
+  db.none('CREATE TABLE IF NOT EXISTS github_users (id BIGSERIAL, login TEXT, name TEXT, company TEXT, location TEXT, CONSTRAINT uc_login UNIQUE (login))')
+    .then(() => request({
+      uri: 'https://api.github.com/users/' + user,
+      headers: {
+            'User-Agent': 'Request-Promise'
+        },
+      json: true
+    }))
+    .then((data: GithubUsers) => db.oneOrNone(
+      'INSERT INTO github_users (login, name, company, location) VALUES ($[login],$[name],$[company],$[location]) ON CONFLICT DO NOTHING RETURNING id', data)
+    )
+    .then((inserted) => {
+      if(!inserted) {
+        console.log('Duplicate insert! Nothing was inserted')
+      } else 
+        console.log(inserted.id);
+    })
+    .then(() => process.exit(0));
+} else {
+    db.manyOrNone('Select * FROM github_users WHERE location=$1',argv['listlocation'])
+    .then((data:GithubUsers[]) =>{
+        data.forEach(element => {
+            console.log(element.name + '\n');
+        });
+    })
+}
